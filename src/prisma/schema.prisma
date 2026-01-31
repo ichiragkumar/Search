@@ -1,0 +1,223 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+////////////////////
+/// CORE ENTITIES ///
+////////////////////
+
+model User {
+  id              BigInt   @id @default(autoincrement())
+  tenantId        Int
+  username        String   @unique
+  email           String   @unique
+  bio             String?
+  isVerified      Boolean  @default(false)
+
+  followerCount   Int      @default(0)
+  followingCount  Int      @default(0)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  articles        Article[]
+  comments        Comment[]
+  likes           Like[]
+  followers       Follower[] @relation("followers")
+  following       Follower[] @relation("following")
+}
+
+model Brand {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  name          String
+  description   String?
+
+  followerCount Int @default(0)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  articles      Article[]
+  followers     BrandFollower[]
+}
+
+model Article {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+
+  title         String
+  content       String
+  excerpt       String?
+
+  authorId      BigInt
+  brandId       BigInt?
+
+  isPublished   Boolean  @default(false)
+  publishedAt   DateTime?
+
+  language      String   @default("en")
+
+  likeCount     Int @default(0)
+  commentCount  Int @default(0)
+  viewCount     Int @default(0)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  author        User   @relation(fields: [authorId], references: [id])
+  brand         Brand? @relation(fields: [brandId], references: [id])
+
+  comments      Comment[]
+  likes         Like[]
+  tags          ArticleTag[]
+}
+
+model Comment {
+  id          BigInt   @id @default(autoincrement())
+  tenantId    Int
+
+  content     String
+
+  articleId   BigInt
+  authorId    BigInt
+
+  createdAt   DateTime @default(now())
+
+  article     Article @relation(fields: [articleId], references: [id])
+  author      User    @relation(fields: [authorId], references: [id])
+}
+
+model Like {
+  id        BigInt   @id @default(autoincrement())
+  tenantId  Int
+
+  userId    BigInt
+  articleId BigInt
+
+  createdAt DateTime @default(now())
+
+  user      User    @relation(fields: [userId], references: [id])
+  article   Article @relation(fields: [articleId], references: [id])
+
+  @@unique([userId, articleId])
+}
+
+////////////////////
+/// SOCIAL GRAPH ///
+////////////////////
+
+model Follower {
+  id          BigInt   @id @default(autoincrement())
+  tenantId    Int
+
+  followerId  BigInt
+  followingId BigInt
+
+  createdAt   DateTime @default(now())
+
+  follower    User @relation("following", fields: [followerId], references: [id])
+  following   User @relation("followers", fields: [followingId], references: [id])
+
+  @@unique([followerId, followingId])
+}
+
+model BrandFollower {
+  id        BigInt   @id @default(autoincrement())
+  tenantId  Int
+
+  userId    BigInt
+  brandId   BigInt
+
+  createdAt DateTime @default(now())
+
+  user      User  @relation(fields: [userId], references: [id])
+  brand     Brand @relation(fields: [brandId], references: [id])
+
+  @@unique([userId, brandId])
+}
+
+////////////////////
+/// TAGS & TOPICS ///
+////////////////////
+
+model Tag {
+  id        BigInt   @id @default(autoincrement())
+  tenantId  Int
+  name      String
+
+  articles  ArticleTag[]
+}
+
+model Topic {
+  id        BigInt   @id @default(autoincrement())
+  tenantId  Int
+  name      String
+}
+
+model ArticleTag {
+  articleId BigInt
+  tagId     BigInt
+
+  article   Article @relation(fields: [articleId], references: [id])
+  tag       Tag     @relation(fields: [tagId], references: [id])
+
+  @@id([articleId, tagId])
+}
+
+////////////////////////////
+/// GLOBAL SEARCH INDEX ///
+////////////////////////////
+
+model SearchIndex {
+  id BigInt @id @default(autoincrement())
+
+  tenantId Int
+
+  /// Entity identity
+  entityType String   // 'user' | 'article' | 'brand' | 'comment'
+  entityId   BigInt
+
+  /// Searchable text
+  primaryText   String?
+  secondaryText String?
+
+  slug           String?
+  technicalIds   String?
+
+  /// Denormalized context
+  authorId    BigInt?
+  authorName  String?
+
+  brandId     BigInt?
+  brandName   String?
+
+  /// Engagement signals
+  followerCount Int @default(0)
+  likeCount     Int @default(0)
+  commentCount  Int @default(0)
+
+  /// Classification
+  tags    String[]
+  topics String[]
+
+  /// Filters
+  language     String?
+  isVerified   Boolean?
+  isPublished  Boolean?
+  publishedAt  DateTime?
+
+  /// Flexible attributes
+  attributes Json?
+
+  updatedAt DateTime @default(now())
+
+  @@unique([tenantId, entityType, entityId])
+  @@index([entityType])
+  @@index([tenantId])
+}
