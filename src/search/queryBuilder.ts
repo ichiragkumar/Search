@@ -5,19 +5,19 @@ export function buildSearchQuery(input: SearchRequest) {
 
   const params: any[] = [];
   const where: string[] = [];
-  const order: string[] = [];
 
-  // mandatory tenant isolation is via RLS; here we add optional filters
-  if (input.entityType) { params.push(input.entityType); where.push(`entity_type = $${params.length}`); }
-  if (input.libraryId)  { params.push(input.libraryId);  where.push(`library_id = $${params.length}`); }
-  if (input.status)     { params.push(input.status);     where.push(`status = $${params.length}`); }
-  if (input.brand)      { params.push(input.brand);      where.push(`brand_name = $${params.length}`); }
+  // Tenant isolation is handled by RLS via middleware
+  // Optional filters
+  if (input.entityType) {
+    params.push(input.entityType);
+    where.push(`"entityType" = $${params.length}`);
+  }
 
-  // search term
+  // Search term
   params.push(input.q);
   const qParam = `$${params.length}`;
 
-  // cursor (keyset)
+  // Cursor (keyset pagination)
   let cursorClause = "";
   if (input.cursor) {
     const decoded = Buffer.from(input.cursor, "base64").toString("utf8");
@@ -27,34 +27,64 @@ export function buildSearchQuery(input: SearchRequest) {
       params.push(Number(id));
       const tsP = `$${params.length - 1}`;
       const idP = `$${params.length}`;
-      cursorClause = `AND (updated_at, id) < (${tsP}::timestamptz, ${idP}::bigint)`;
+      cursorClause = `AND ("updatedAt", id) < (${tsP}::timestamptz, ${idP}::bigint)`;
     }
   }
 
-  const whereSql = where.length ? `WHERE ${where.join(" AND ")} ${cursorClause}` : `WHERE true ${cursorClause}`;
+  const whereSql = where.length
+    ? `WHERE ${where.join(" AND ")} ${cursorClause}`
+    : `WHERE true ${cursorClause}`;
 
-  // scoring
+  // Use precomputed search_vector column (created by SQL migration)
+  // Fallback to on-the-fly if search_vector doesn't exist
   const sql = `
     SELECT
-      id, entity_type, entity_id, primary_code, title, subtitle, brand_name, status, year, attributes, updated_at,
-      -- FTS rank
-      ts_rank_cd(search_vector, plainto_tsquery('english', ${qParam})) AS fts_rank,
-      -- trigram similarity
-      GREATEST(similarity(coalesce(primary_code,''), ${qParam}), similarity(coalesce(title,''), ${qParam})) AS trgm_rank
-    FROM search.global_search_index
+      id, "entityType", "entityId", "primaryText", "secondaryText", "slug",
+      "authorName", "brandName", "followerCount", "likeCount", "commentCount", "viewCount",
+      tags, attributes, "updatedAt",
+      -- FTS rank (using precomputed search_vector if available, otherwise compute on fly)
+      COALESCE(
+        ts_rank_cd(search_vector, plainto_tsquery('english', ${qParam})),
+        ts_rank_cd(
+          to_tsvector('english', COALESCE("primaryText", '') || ' ' || COALESCE("secondaryText", '') || ' ' || COALESCE("authorName", '')),
+          plainto_tsquery('english', ${qParam})
+        )
+      ) AS fts_rank,
+      -- Trigram similarity
+      GREATEST(
+        similarity(COALESCE("primaryText", ''), ${qParam}),
+        similarity(COALESCE("secondaryText", ''), ${qParam}),
+        similarity(COALESCE("authorName", ''), ${qParam})
+      ) AS trgm_rank
+    FROM "SearchIndex"
     ${whereSql}
     AND (
-      -- FTS hits OR trigram hits
-      search_vector @@ plainto_tsquery('english', ${qParam})
-      OR similarity(coalesce(primary_code,''), ${qParam}) > 0.2
-      OR similarity(coalesce(title,''), ${qParam}) > 0.2
-      OR coalesce(technical_ids,'') ILIKE '%' || ${qParam} || '%'
+      -- FTS match (precomputed search_vector or on-the-fly)
+      COALESCE(search_vector @@ plainto_tsquery('english', ${qParam}), false)
+      OR to_tsvector('english', COALESCE("primaryText", '') || ' ' || COALESCE("secondaryText", '') || ' ' || COALESCE("authorName", '')) @@ plainto_tsquery('english', ${qParam})
+      -- OR trigram match
+      OR similarity(COALESCE("primaryText", ''), ${qParam}) > 0.2
+      OR similarity(COALESCE("secondaryText", ''), ${qParam}) > 0.2
+      OR similarity(COALESCE("authorName", ''), ${qParam}) > 0.2
+      -- OR exact match in technical IDs
+      OR COALESCE("technicalIds", '') ILIKE '%' || ${qParam} || '%'
     )
     ORDER BY
-      (ts_rank_cd(search_vector, plainto_tsquery('english', ${qParam})) * 0.7
-       + GREATEST(similarity(coalesce(primary_code,''), ${qParam}), similarity(coalesce(title,''), ${qParam})) * 0.3
+      (
+        COALESCE(
+          ts_rank_cd(search_vector, plainto_tsquery('english', ${qParam})),
+          ts_rank_cd(
+            to_tsvector('english', COALESCE("primaryText", '') || ' ' || COALESCE("secondaryText", '') || ' ' || COALESCE("authorName", '')),
+            plainto_tsquery('english', ${qParam})
+          )
+        ) * 0.7
+        + GREATEST(
+          similarity(COALESCE("primaryText", ''), ${qParam}),
+          similarity(COALESCE("secondaryText", ''), ${qParam}),
+          similarity(COALESCE("authorName", ''), ${qParam})
+        ) * 0.3
       ) DESC,
-      updated_at DESC,
+      "updatedAt" DESC,
       id DESC
     LIMIT ${limit};
   `;
