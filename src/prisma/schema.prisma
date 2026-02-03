@@ -16,109 +16,190 @@ model User {
   tenantId        Int
   username        String   @unique
   email           String   @unique
+  fullName        String?
   bio             String?
+  profilePicUrl   String?
   isVerified      Boolean  @default(false)
-
+  isPrivate       Boolean  @default(false)
+  isBusiness      Boolean  @default(false)
   followerCount   Int      @default(0)
   followingCount  Int      @default(0)
-
+  postCount       Int      @default(0)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  articles        Article[]
+  posts           Post[]
+  stories         Story[]
+  reels           Reel[]
+  igtv            IGTV[]
   comments        Comment[]
   likes           Like[]
   followers       Follower[] @relation("followers")
   following       Follower[] @relation("following")
+  savedPosts      SavedPost[]
+  collections     Collection[]
+  messages        Message[] @relation("sender")
+  receivedMessages Message[] @relation("receiver")
+  notifications   Notification[]
+  highlights      Highlight[]
+  liveStreams     LiveStream[]
+  shoppingProducts ShoppingProduct[]
+  businessProfile BusinessProfile?
+  creatorProfile  CreatorProfile?
+  postTags        PostTag[] @relation("PostTaggedUser")
+  postMentions    PostMention[] @relation("PostMentionedUser")
+  storyViews      StoryView[] @relation("StoryViewer")
+  storyReactions  StoryReaction[] @relation("StoryReactor")
+  storyReplies    StoryReply[] @relation("StoryReplier")
+  storyMentions   StoryMention[] @relation("StoryMentionedUser")
+  storyTags       StoryTag[] @relation("StoryTaggedUser")
+  reelComments    ReelComment[] @relation("ReelCommenter")
+  reelLikes       ReelLike[] @relation("ReelLiker")
+  reelTags        ReelTag[] @relation("ReelTaggedUser")
+  reelMentions    ReelMention[] @relation("ReelMentionedUser")
+  igtvComments    IGTVComment[] @relation("IGTVCommenter")
+  igtvLikes       IGTVLike[] @relation("IGTVLiker")
+  igtvTags        IGTVTag[] @relation("IGTVTaggedUser")
+  igtvMentions    IGTVMention[] @relation("IGTVMentionedUser")
+  commentLikes    CommentLike[] @relation("CommentLiker")
+  commentReplies  CommentReply[] @relation("CommentReplier")
+  commentMentions CommentMention[] @relation("CommentMentionedUser")
+  liveStreamComments LiveStreamComment[] @relation("LiveStreamCommenter")
+  liveStreamViewers LiveStreamViewer[] @relation("LiveStreamViewer")
 }
 
-model Brand {
+model Post {
   id            BigInt   @id @default(autoincrement())
   tenantId      Int
-  name          String
-  description   String?
-
-  followerCount Int @default(0)
-
+  userId        BigInt
+  caption       String?
+  locationId    BigInt?
+  likeCount     Int      @default(0)
+  commentCount  Int      @default(0)
+  viewCount     Int      @default(0)
+  isArchived    Boolean  @default(false)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  articles      Article[]
-  followers     BrandFollower[]
-}
-
-model Article {
-  id            BigInt   @id @default(autoincrement())
-  tenantId      Int
-
-  title         String
-  content       String
-  excerpt       String?
-
-  authorId      BigInt
-  brandId       BigInt?
-
-  isPublished   Boolean  @default(false)
-  publishedAt   DateTime?
-
-  language      String   @default("en")
-
-  likeCount     Int @default(0)
-  commentCount  Int @default(0)
-  viewCount     Int @default(0)
-
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  author        User   @relation(fields: [authorId], references: [id])
-  brand         Brand? @relation(fields: [brandId], references: [id])
-
+  user          User     @relation(fields: [userId], references: [id])
+  location      Location? @relation(fields: [locationId], references: [id])
+  media         PostMedia[]
   comments      Comment[]
   likes         Like[]
-  tags          ArticleTag[]
+  tags          PostTag[]
+  mentions      PostMention[]
+  hashtags      PostHashtag[]
+  savedBy       SavedPost[]
+  collections   CollectionPost[]
+}
+
+model Story {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  userId        BigInt
+  mediaUrl      String
+  caption       String?
+  locationId    BigInt?
+  musicId       BigInt?
+  viewCount     Int      @default(0)
+  expiresAt     DateTime
+  createdAt     DateTime @default(now())
+
+  user          User     @relation(fields: [userId], references: [id])
+  location      Location? @relation("StoryLocation", fields: [locationId], references: [id])
+  music         Music? @relation("StoryMusic", fields: [musicId], references: [id])
+  views         StoryView[]
+  reactions     StoryReaction[]
+  replies       StoryReply[]
+  mentions      StoryMention[]
+  tags          StoryTag[]
+  highlights    HighlightStory[]
+}
+
+model Reel {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  userId        BigInt
+  videoUrl      String
+  thumbnailUrl  String?
+  caption       String?
+  locationId    BigInt?
+  musicId       BigInt?
+  likeCount     Int      @default(0)
+  commentCount  Int      @default(0)
+  viewCount     Int      @default(0)
+  shareCount    Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id])
+  location      Location? @relation("ReelLocation", fields: [locationId], references: [id])
+  music         Music? @relation("ReelMusic", fields: [musicId], references: [id])
+  comments      ReelComment[]
+  likes         ReelLike[]
+  tags          ReelTag[]
+  mentions      ReelMention[]
+  hashtags      ReelHashtag[]
+}
+
+model IGTV {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  userId        BigInt
+  videoUrl      String
+  thumbnailUrl  String?
+  title         String
+  description   String?
+  duration      Int
+  likeCount     Int      @default(0)
+  commentCount  Int      @default(0)
+  viewCount     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id])
+  comments      IGTVComment[]
+  likes         IGTVLike[]
+  tags          IGTVTag[]
+  mentions      IGTVMention[]
+  hashtags      IGTVHashtag[]
 }
 
 model Comment {
   id          BigInt   @id @default(autoincrement())
   tenantId    Int
-
+  postId      BigInt
+  userId      BigInt
   content     String
-
-  articleId   BigInt
-  authorId    BigInt
-
+  likeCount   Int      @default(0)
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  article     Article @relation(fields: [articleId], references: [id])
-  author      User    @relation(fields: [authorId], references: [id])
+  post        Post     @relation(fields: [postId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+  likes       CommentLike[]
+  replies     CommentReply[]
+  mentions    CommentMention[]
 }
 
 model Like {
   id        BigInt   @id @default(autoincrement())
   tenantId  Int
-
   userId    BigInt
-  articleId BigInt
-
+  postId    BigInt
   createdAt DateTime @default(now())
 
-  user      User    @relation(fields: [userId], references: [id])
-  article   Article @relation(fields: [articleId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+  post      Post     @relation(fields: [postId], references: [id])
 
-  @@unique([userId, articleId])
+  @@unique([userId, postId])
 }
-
-////////////////////
-/// SOCIAL GRAPH ///
-////////////////////
 
 model Follower {
   id          BigInt   @id @default(autoincrement())
   tenantId    Int
-
   followerId  BigInt
   followingId BigInt
-
   createdAt   DateTime @default(now())
 
   follower    User @relation("following", fields: [followerId], references: [id])
@@ -127,47 +208,519 @@ model Follower {
   @@unique([followerId, followingId])
 }
 
-model BrandFollower {
+model Hashtag {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  name          String   @unique
+  postCount     Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  posts         PostHashtag[]
+  reels         ReelHashtag[]
+  igtv          IGTVHashtag[]
+}
+
+model Location {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  name          String
+  address       String?
+  city          String?
+  country       String?
+  latitude      Float?
+  longitude     Float?
+  postCount     Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  posts         Post[]
+  stories       Story[] @relation("StoryLocation")
+  reels         Reel[] @relation("ReelLocation")
+}
+
+model Music {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  title         String
+  artist        String?
+  duration      Int
+  audioUrl      String
+  coverUrl      String?
+  usageCount    Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  stories       Story[] @relation("StoryMusic")
+  reels         Reel[] @relation("ReelMusic")
+}
+
+model SavedPost {
   id        BigInt   @id @default(autoincrement())
   tenantId  Int
-
   userId    BigInt
-  brandId   BigInt
-
+  postId    BigInt
   createdAt DateTime @default(now())
 
-  user      User  @relation(fields: [userId], references: [id])
-  brand     Brand @relation(fields: [brandId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+  post      Post     @relation(fields: [postId], references: [id])
 
-  @@unique([userId, brandId])
+  @@unique([userId, postId])
 }
 
-////////////////////
-/// TAGS & TOPICS ///
-////////////////////
+model Collection {
+  id          BigInt   @id @default(autoincrement())
+  tenantId    Int
+  userId      BigInt
+  name        String
+  description String?
+  isPrivate   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-model Tag {
-  id        BigInt   @id @default(autoincrement())
-  tenantId  Int
-  name      String
-
-  articles  ArticleTag[]
+  user        User     @relation(fields: [userId], references: [id])
+  posts       CollectionPost[]
 }
 
-model Topic {
-  id        BigInt   @id @default(autoincrement())
-  tenantId  Int
-  name      String
+model CollectionPost {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  collectionId  BigInt
+  postId        BigInt
+  createdAt     DateTime @default(now())
+
+  collection    Collection @relation(fields: [collectionId], references: [id])
+  post          Post       @relation(fields: [postId], references: [id])
+
+  @@unique([collectionId, postId])
 }
 
-model ArticleTag {
-  articleId BigInt
-  tagId     BigInt
+model Message {
+  id          BigInt   @id @default(autoincrement())
+  tenantId    Int
+  senderId    BigInt
+  receiverId  BigInt
+  content     String?
+  mediaUrl    String?
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
 
-  article   Article @relation(fields: [articleId], references: [id])
-  tag       Tag     @relation(fields: [tagId], references: [id])
+  sender      User     @relation("sender", fields: [senderId], references: [id])
+  receiver    User     @relation("receiver", fields: [receiverId], references: [id])
+}
 
-  @@id([articleId, tagId])
+model Notification {
+  id          BigInt   @id @default(autoincrement())
+  tenantId    Int
+  userId      BigInt
+  type        String
+  content     String
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model Highlight {
+  id          BigInt   @id @default(autoincrement())
+  tenantId    Int
+  userId      BigInt
+  name        String
+  coverUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id])
+  stories     HighlightStory[]
+}
+
+model HighlightStory {
+  id          BigInt   @id @default(autoincrement())
+  tenantId    Int
+  highlightId BigInt
+  storyId     BigInt
+  createdAt   DateTime @default(now())
+
+  highlight   Highlight @relation(fields: [highlightId], references: [id])
+  story       Story     @relation(fields: [storyId], references: [id])
+
+  @@unique([highlightId, storyId])
+}
+
+model LiveStream {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  userId        BigInt
+  streamUrl     String
+  title         String?
+  viewerCount   Int      @default(0)
+  isActive      Boolean  @default(true)
+  startedAt     DateTime @default(now())
+  endedAt       DateTime?
+
+  user          User     @relation(fields: [userId], references: [id])
+  comments      LiveStreamComment[]
+  viewers       LiveStreamViewer[]
+}
+
+model ShoppingProduct {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  userId        BigInt
+  name          String
+  description   String?
+  price         Decimal
+  currency      String   @default("USD")
+  imageUrl      String?
+  productUrl    String?
+  isAvailable   Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id])
+}
+
+model BusinessProfile {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  userId        BigInt   @unique
+  businessName  String
+  category      String?
+  website       String?
+  phone         String?
+  email         String?
+  address       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id])
+}
+
+model CreatorProfile {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  userId        BigInt   @unique
+  category      String?
+  niche         String?
+  brandDeals    Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id])
+}
+
+model PostMedia {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  postId        BigInt
+  mediaUrl      String
+  mediaType     String
+  orderIndex    Int
+  createdAt     DateTime @default(now())
+
+  post          Post     @relation(fields: [postId], references: [id])
+}
+
+model PostTag {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  postId        BigInt
+  userId        BigInt
+  x             Float
+  y             Float
+  createdAt     DateTime @default(now())
+
+  post          Post     @relation(fields: [postId], references: [id])
+  user          User     @relation("PostTaggedUser", fields: [userId], references: [id])
+
+  @@unique([postId, userId])
+}
+
+model PostMention {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  postId        BigInt
+  userId        BigInt
+  createdAt     DateTime @default(now())
+
+  post          Post     @relation(fields: [postId], references: [id])
+  user          User     @relation("PostMentionedUser", fields: [userId], references: [id])
+
+  @@unique([postId, userId])
+}
+
+model PostHashtag {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  postId        BigInt
+  hashtagId     BigInt
+  createdAt     DateTime @default(now())
+
+  post          Post     @relation(fields: [postId], references: [id])
+  hashtag       Hashtag  @relation(fields: [hashtagId], references: [id])
+
+  @@unique([postId, hashtagId])
+}
+
+model StoryView {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  storyId       BigInt
+  userId        BigInt
+  viewedAt      DateTime @default(now())
+
+  story         Story    @relation(fields: [storyId], references: [id])
+  user          User     @relation("StoryViewer", fields: [userId], references: [id])
+
+  @@unique([storyId, userId])
+}
+
+model StoryReaction {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  storyId       BigInt
+  userId        BigInt
+  reactionType  String
+  createdAt     DateTime @default(now())
+
+  story         Story    @relation(fields: [storyId], references: [id])
+  user          User     @relation("StoryReactor", fields: [userId], references: [id])
+
+  @@unique([storyId, userId])
+}
+
+model StoryReply {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  storyId       BigInt
+  userId        BigInt
+  content       String
+  createdAt     DateTime @default(now())
+
+  story         Story    @relation(fields: [storyId], references: [id])
+  user          User     @relation("StoryReplier", fields: [userId], references: [id])
+}
+
+model StoryMention {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  storyId       BigInt
+  userId        BigInt
+  createdAt     DateTime @default(now())
+
+  story         Story    @relation(fields: [storyId], references: [id])
+  user          User     @relation("StoryMentionedUser", fields: [userId], references: [id])
+
+  @@unique([storyId, userId])
+}
+
+model StoryTag {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  storyId       BigInt
+  userId        BigInt
+  x             Float
+  y             Float
+  createdAt     DateTime @default(now())
+
+  story         Story    @relation(fields: [storyId], references: [id])
+  user          User     @relation("StoryTaggedUser", fields: [userId], references: [id])
+
+  @@unique([storyId, userId])
+}
+
+model ReelComment {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  reelId        BigInt
+  userId        BigInt
+  content       String
+  likeCount     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  reel          Reel     @relation(fields: [reelId], references: [id])
+  user          User     @relation("ReelCommenter", fields: [userId], references: [id])
+}
+
+model ReelLike {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  reelId        BigInt
+  userId        BigInt
+  createdAt     DateTime @default(now())
+
+  reel          Reel     @relation(fields: [reelId], references: [id])
+  user          User     @relation("ReelLiker", fields: [userId], references: [id])
+
+  @@unique([reelId, userId])
+}
+
+model ReelTag {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  reelId        BigInt
+  userId        BigInt
+  createdAt     DateTime @default(now())
+
+  reel          Reel     @relation(fields: [reelId], references: [id])
+  user          User     @relation("ReelTaggedUser", fields: [userId], references: [id])
+
+  @@unique([reelId, userId])
+}
+
+model ReelMention {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  reelId        BigInt
+  userId        BigInt
+  createdAt     DateTime @default(now())
+
+  reel          Reel     @relation(fields: [reelId], references: [id])
+  user          User     @relation("ReelMentionedUser", fields: [userId], references: [id])
+
+  @@unique([reelId, userId])
+}
+
+model ReelHashtag {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  reelId        BigInt
+  hashtagId     BigInt
+  createdAt     DateTime @default(now())
+
+  reel          Reel     @relation(fields: [reelId], references: [id])
+  hashtag       Hashtag  @relation("ReelHashtag", fields: [hashtagId], references: [id])
+
+  @@unique([reelId, hashtagId])
+}
+
+model IGTVComment {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  igtvId        BigInt
+  userId        BigInt
+  content       String
+  likeCount     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  igtv          IGTV     @relation(fields: [igtvId], references: [id])
+  user          User     @relation("IGTVCommenter", fields: [userId], references: [id])
+}
+
+model IGTVLike {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  igtvId        BigInt
+  userId        BigInt
+  createdAt     DateTime @default(now())
+
+  igtv          IGTV     @relation(fields: [igtvId], references: [id])
+  user          User     @relation("IGTVLiker", fields: [userId], references: [id])
+
+  @@unique([igtvId, userId])
+}
+
+model IGTVTag {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  igtvId        BigInt
+  userId        BigInt
+  createdAt     DateTime @default(now())
+
+  igtv          IGTV     @relation(fields: [igtvId], references: [id])
+  user          User     @relation("IGTVTaggedUser", fields: [userId], references: [id])
+
+  @@unique([igtvId, userId])
+}
+
+model IGTVMention {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  igtvId        BigInt
+  userId        BigInt
+  createdAt     DateTime @default(now())
+
+  igtv          IGTV     @relation(fields: [igtvId], references: [id])
+  user          User     @relation("IGTVMentionedUser", fields: [userId], references: [id])
+
+  @@unique([igtvId, userId])
+}
+
+model IGTVHashtag {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  igtvId        BigInt
+  hashtagId     BigInt
+  createdAt     DateTime @default(now())
+
+  igtv          IGTV     @relation(fields: [igtvId], references: [id])
+  hashtag       Hashtag  @relation("IGTVHashtag", fields: [hashtagId], references: [id])
+
+  @@unique([igtvId, hashtagId])
+}
+
+model CommentLike {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  commentId     BigInt
+  userId        BigInt
+  createdAt     DateTime @default(now())
+
+  comment       Comment  @relation(fields: [commentId], references: [id])
+  user          User     @relation("CommentLiker", fields: [userId], references: [id])
+
+  @@unique([commentId, userId])
+}
+
+model CommentReply {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  commentId     BigInt
+  userId        BigInt
+  content       String
+  likeCount     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  comment       Comment  @relation(fields: [commentId], references: [id])
+  user          User     @relation("CommentReplier", fields: [userId], references: [id])
+}
+
+model CommentMention {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  commentId     BigInt
+  userId        BigInt
+  createdAt     DateTime @default(now())
+
+  comment       Comment  @relation(fields: [commentId], references: [id])
+  user          User     @relation("CommentMentionedUser", fields: [userId], references: [id])
+
+  @@unique([commentId, userId])
+}
+
+model LiveStreamComment {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  liveStreamId  BigInt
+  userId        BigInt
+  content       String
+  createdAt     DateTime @default(now())
+
+  liveStream    LiveStream @relation(fields: [liveStreamId], references: [id])
+  user          User       @relation("LiveStreamCommenter", fields: [userId], references: [id])
+}
+
+model LiveStreamViewer {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      Int
+  liveStreamId  BigInt
+  userId        BigInt
+  joinedAt      DateTime @default(now())
+
+  liveStream    LiveStream @relation(fields: [liveStreamId], references: [id])
+  user          User       @relation("LiveStreamViewer", fields: [userId], references: [id])
+
+  @@unique([liveStreamId, userId])
 }
 
 ////////////////////////////
@@ -180,7 +733,7 @@ model SearchIndex {
   tenantId Int
 
   /// Entity identity
-  entityType String   // 'user' | 'article' | 'brand' | 'comment'
+  entityType String   // 'user' | 'post' | 'story' | 'reel' | 'igtv' | 'hashtag' | 'location' | etc.
   entityId   BigInt
 
   /// Searchable text
@@ -201,6 +754,7 @@ model SearchIndex {
   followerCount Int @default(0)
   likeCount     Int @default(0)
   commentCount  Int @default(0)
+  viewCount     Int @default(0)
 
   /// Classification
   tags    String[]
@@ -220,4 +774,5 @@ model SearchIndex {
   @@unique([tenantId, entityType, entityId])
   @@index([entityType])
   @@index([tenantId])
+  @@index([updatedAt, id])
 }
