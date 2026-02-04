@@ -8,7 +8,14 @@
     "seed": "ts-node src/scripts/seed.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f app",
+    "docker:build": "docker-compose build",
+    "docker:restart": "docker-compose restart",
+    "docker:ps": "docker-compose ps",
+    "docker:exec": "docker-compose exec app sh"
   },
   "keywords": [],
   "author": "",

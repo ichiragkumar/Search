@@ -1,0 +1,12 @@
+# Copy this file to docker-compose.override.yml to customize for local development
+# docker-compose.override.yml is automatically loaded by docker-compose
+
+version: '3.8'
+
+services:
+  app:
+    environment:
+      # Override with your local settings if needed
+      DATABASE_URL: postgresql://postgres:postgres@postgres-primary:5432/search_db
+      REPLICA_DATABASE_URL: postgresql://postgres:postgres@postgres-replica:5432/search_db
+      REDIS_URL: redis://redis:6379

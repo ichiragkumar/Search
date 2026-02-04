@@ -1,5 +1,26 @@
 # Setup Guide
 
+## Quick Start with Docker (Recommended)
+
+The easiest way to run everything locally:
+
+```bash
+# Start all services
+docker-compose up -d
+
+# Check health
+curl http://localhost:3000/health
+
+# Seed data (optional)
+docker-compose exec app npm run seed
+```
+
+See [DOCKER.md](./DOCKER.md) for detailed Docker instructions.
+
+---
+
+## Manual Setup
+
 ## Prerequisites
 
 - Node.js 18+

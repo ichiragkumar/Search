@@ -22,6 +22,23 @@ A high-performance, multi-tenant search engine built on **PostgreSQL Full-Text S
 
 ---
 
+## 🚀 Quick Start (Docker)
+
+```bash
+# Start all services (PostgreSQL, Redis, App)
+docker-compose up -d
+
+# Check health
+curl http://localhost:3000/health
+
+# Test search
+curl "http://localhost:3000/search?q=test" -H "x-tenant-id: 1"
+```
+
+See [QUICKSTART.md](./QUICKSTART.md) for more details.
+
+---
+
 ## ✨ Features
 
 * ⚡ Sub-300ms search responses
